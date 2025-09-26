@@ -1,5 +1,4 @@
-import { http, HttpResponse } from 'msw';
-import { jwtDecode } from 'jwt-decode';
+import { http, HttpResponse, Request } from 'msw';
 
 interface LoginRequestBody {
   email: string;
@@ -35,8 +34,9 @@ const generateTokens = (user: any) => {
   return { accessToken: newAccessToken, refreshToken: newRefreshToken };
 };
 
+
 export const handlers = [
-  http.post('/users/login', async ({ request }) => {
+  http.post('/users/login', async ({ request }: { request: Request }) => {
     const { email, password } = (await request.json()) as LoginRequestBody;
     const user = users.find(u => u.email === email && u.password === password);
 
@@ -48,7 +48,7 @@ export const handlers = [
     return HttpResponse.json({ accessToken: tokens.accessToken, refreshToken: tokens.refreshToken });
   }),
 
-  http.post('/users/refresh', async ({ request }) => {
+  http.post('/users/refresh', async ({ request }: { request: Request }) => {
     const { refreshToken: reqRefreshToken } = (await request.json()) as RefreshRequestBody;
 
     if (reqRefreshToken !== refreshToken || !refreshToken) {
@@ -62,7 +62,7 @@ export const handlers = [
     return HttpResponse.json({ accessToken: tokens.accessToken, refreshToken: tokens.refreshToken });
   }),
 
-  http.get('/users/me', ({ request }) => {
+  http.get('/users/me', ({ request }: { request: Request }) => {
     const authHeader = request.headers.get('Authorization');
     const token = authHeader?.split(' ')[1];
 
@@ -81,7 +81,7 @@ export const handlers = [
     });
   }),
 
-  http.put('/users/me', async ({ request }) => {
+  http.put('/users/me', async ({ request }: { request: Request }) => {
     const authHeader = request.headers.get('Authorization');
     const token = authHeader?.split(' ')[1];
 
