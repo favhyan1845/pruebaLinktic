@@ -1,11 +1,20 @@
 {
   "devDependencies": {
     "@types/jwt-decode": "^2.2.1",
-    "msw": "^2.11.3"
+    "@types/node": "24.5.2",
+    "@types/react": "19.1.14",
+    "msw": "^2.11.3",
+    "typescript": "5.9.2"
   },
   "dependencies": {
     "next": "14.2.5",
     "react": "18.3.1",
     "react-dom": "18.3.1"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
   }
 }
