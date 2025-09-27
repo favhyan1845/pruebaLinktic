@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Cookies from 'js-cookie';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -33,8 +34,8 @@ export default function LoginPage() {
       }
 
       const { accessToken, refreshToken } = await response.json();
-      localStorage.setItem('accessToken', accessToken);
-      localStorage.setItem('refreshToken', refreshToken);
+      Cookies.set('accessToken', accessToken);
+      Cookies.set('refreshToken', refreshToken);
       router.push('/dashboard');
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred.');

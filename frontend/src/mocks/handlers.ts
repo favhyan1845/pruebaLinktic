@@ -1,4 +1,4 @@
-import { http, HttpResponse, Request } from 'msw';
+import { http, HttpResponse } from 'msw';
 
 interface LoginRequestBody {
   email: string;
@@ -36,19 +36,19 @@ const generateTokens = (user: any) => {
 
 
 export const handlers = [
-  http.post('/users/login', async ({ request }: { request: Request }) => {
+  http.post('/users/login', async ({ request }) => {
     const { email, password } = (await request.json()) as LoginRequestBody;
     const user = users.find(u => u.email === email && u.password === password);
-
+console.log('Login attempt:', email, password, 'User found:', user);
     if (!user) {
-      return new HttpResponse(null, { status: 401, statusText: 'Invalid credentials' });
+      return HttpResponse.json({ message: 'Invalid credentials' }, { status: 401 });
     }
 
     const tokens = generateTokens(user);
     return HttpResponse.json({ accessToken: tokens.accessToken, refreshToken: tokens.refreshToken });
   }),
 
-  http.post('/users/refresh', async ({ request }: { request: Request }) => {
+  http.post('/users/refresh', async ({ request }) => {
     const { refreshToken: reqRefreshToken } = (await request.json()) as RefreshRequestBody;
 
     if (reqRefreshToken !== refreshToken || !refreshToken) {
@@ -62,7 +62,7 @@ export const handlers = [
     return HttpResponse.json({ accessToken: tokens.accessToken, refreshToken: tokens.refreshToken });
   }),
 
-  http.get('/users/me', ({ request }: { request: Request }) => {
+  http.get('/users/me', ({ request }) => {
     const authHeader = request.headers.get('Authorization');
     const token = authHeader?.split(' ')[1];
 
@@ -81,7 +81,7 @@ export const handlers = [
     });
   }),
 
-  http.put('/users/me', async ({ request }: { request: Request }) => {
+  http.put('/users/me', async ({ request }) => {
     const authHeader = request.headers.get('Authorization');
     const token = authHeader?.split(' ')[1];
 

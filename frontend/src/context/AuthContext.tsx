@@ -2,7 +2,8 @@
 
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import jwtDecode from 'jwt-decode';
+import { jwtDecode } from 'jwt-decode';
+import Cookies from 'js-cookie';
 
 interface User {
   id: string;
@@ -31,8 +32,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   const saveTokens = useCallback((newAccessToken: string, newRefreshToken: string) => {
-    localStorage.setItem('accessToken', newAccessToken);
-    localStorage.setItem('refreshToken', newRefreshToken);
+    Cookies.set('accessToken', newAccessToken);
+    Cookies.set('refreshToken', newRefreshToken);
     setAccessToken(newAccessToken);
     setRefreshToken(newRefreshToken);
     // In a real app, you'd decode the access token to get user info
@@ -47,8 +48,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const clearTokens = useCallback(() => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
+    Cookies.remove('accessToken');
+    Cookies.remove('refreshToken');
     setAccessToken(null);
     setRefreshToken(null);
     setUser(null);
@@ -67,12 +68,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('Login API error:', errorData);
         throw new Error(errorData.message || 'Login failed');
       }
 
       const { accessToken: newAccessToken, refreshToken: newRefreshToken } = await response.json();
+      console.log('Login successful, tokens received:', { newAccessToken, newRefreshToken });
       saveTokens(newAccessToken, newRefreshToken);
+      console.log('Tokens saved, attempting to redirect to /dashboard');
       router.push('/dashboard');
+      console.log('Redirect initiated.');
+    } catch (error) {
+      console.error('Login process failed:', error);
     } finally {
       setLoading(false);
     }
@@ -84,7 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [clearTokens, router]);
 
   const refreshAccessToken = useCallback(async () => {
-    const currentRefreshToken = localStorage.getItem('refreshToken');
+    const currentRefreshToken = Cookies.get('refreshToken');
     if (!currentRefreshToken) {
       logout();
       return null;
@@ -116,8 +123,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const loadTokens = async () => {
-      const storedAccessToken = localStorage.getItem('accessToken');
-      const storedRefreshToken = localStorage.getItem('refreshToken');
+      const storedAccessToken = Cookies.get('accessToken');
+      const storedRefreshToken = Cookies.get('refreshToken');
 
       if (storedAccessToken && storedRefreshToken) {
         setAccessToken(storedAccessToken);
