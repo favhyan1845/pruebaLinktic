@@ -1,9 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import { jwtDecode } from 'jwt-decode';
-import Cookies from 'js-cookie';
+import { useRouter } from 'next/navigation'; // Keep useRouter for navigation
 
 interface User {
   id: string;
@@ -27,121 +25,79 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [refreshToken, setRefreshToken] = useState<string | null>(null);
+  // refreshToken is no longer needed as we won't be refreshing tokens via API
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  const saveTokens = useCallback((newAccessToken: string, newRefreshToken: string) => {
-    Cookies.set('accessToken', newAccessToken);
-    Cookies.set('refreshToken', newRefreshToken);
-    setAccessToken(newAccessToken);
-    setRefreshToken(newRefreshToken);
-    // In a real app, you'd decode the access token to get user info
-    // For this mock, we'll assume a simple user structure
-    const decoded: any = jwtDecode(newAccessToken); // jwtDecode expects a real JWT, this will fail with mock tokens
-    setUser({
-      id: '1', // Mock user ID
-      email: 'test@example.com', // Mock email
-      name: 'Test User', // Mock name
-      createdAt: new Date().toISOString(), // Mock creation date
-    });
-  }, []);
-
-  const clearTokens = useCallback(() => {
-    Cookies.remove('accessToken');
-    Cookies.remove('refreshToken');
-    setAccessToken(null);
-    setRefreshToken(null);
-    setUser(null);
-  }, []);
-
+  // Simulate a successful login directly
   const login = useCallback(async (email: string, password: string) => {
     setLoading(true);
     try {
-      const response = await fetch('/users/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
+      // Simulate a successful login with mock data
+      const mockUser = {
+        id: 'mock-user-id',
+        email: email, // Use provided email
+        name: 'Usuario Simulad',
+        createdAt: new Date().toISOString(),
+      };
+      const mockAccessToken = `mock-access-token-${mockUser.id}-${Date.now()}`;
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Login API error:', errorData);
-        throw new Error(errorData.message || 'Login failed');
-      }
+      setUser(mockUser);
+      setAccessToken(mockAccessToken);
+      // No need to store in cookies or use refreshToken
 
-      const { accessToken: newAccessToken, refreshToken: newRefreshToken } = await response.json();
-      console.log('Login successful, tokens received:', { newAccessToken, newRefreshToken });
-      saveTokens(newAccessToken, newRefreshToken);
-      console.log('Tokens saved, attempting to redirect to /dashboard');
+      console.log('Simulación de inicio de sesión exitosa.');
       router.push('/dashboard');
-      console.log('Redirect initiated.');
     } catch (error) {
-      console.error('Login process failed:', error);
+      console.error('Error en la simulación de inicio de sesión:', error);
     } finally {
       setLoading(false);
     }
-  }, [saveTokens, router]);
+  }, [router]);
 
   const logout = useCallback(() => {
-    clearTokens();
+    setUser(null);
+    setAccessToken(null);
+    // No need to clear cookies or tokens
+    console.log('Simulación de cierre de sesión.');
     router.push('/login');
-  }, [clearTokens, router]);
+  }, [router]);
 
-  const refreshAccessToken = useCallback(async () => {
-    const currentRefreshToken = Cookies.get('refreshToken');
-    if (!currentRefreshToken) {
-      logout();
-      return null;
+  // Simulate token refresh, though not strictly necessary if login sets tokens directly
+  const refreshAccessToken = useCallback(async (): Promise<string | null> => {
+    // In a real app, this would fetch a new token. Here, we just simulate success.
+    // If accessToken is already set, we can assume it's valid for this mock.
+    if (accessToken) {
+      console.log('Simulación de refresco de token exitoso.');
+      // Optionally, generate a new mock token if needed for more complex scenarios
+      // const newMockAccessToken = `mock-access-token-${user?.id || 'mock-user-id'}-${Date.now()}`;
+      // setAccessToken(newMockAccessToken);
+      return accessToken;
     }
-
-    try {
-      const response = await fetch('/users/refresh', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ refreshToken: currentRefreshToken }),
-      });
-
-      if (!response.ok) {
-        logout();
-        return null;
-      }
-
-      const { accessToken: newAccessToken, refreshToken: newRefreshToken } = await response.json();
-      saveTokens(newAccessToken, newRefreshToken);
-      return newAccessToken;
-    } catch (error) {
-      console.error('Failed to refresh token:', error);
-      logout();
-      return null;
-    }
-  }, [logout, saveTokens]);
+    logout(); // If no access token, simulate logout
+    return null;
+  }, [accessToken, logout]);
 
   useEffect(() => {
-    const loadTokens = async () => {
-      const storedAccessToken = Cookies.get('accessToken');
-      const storedRefreshToken = Cookies.get('refreshToken');
-
-      if (storedAccessToken && storedRefreshToken) {
-        setAccessToken(storedAccessToken);
-        setRefreshToken(storedRefreshToken);
-        // For mock, assume user is logged in if tokens exist
-        setUser({
-          id: '1',
-          email: 'test@example.com',
-          name: 'Test User',
-          createdAt: new Date().toISOString(),
-        });
-      }
+    // On initial load, check if there's a mock accessToken (e.g., from a previous session if we were to implement persistence)
+    // For now, we'll just set a default state or check if user is already logged in.
+    // If we want to simulate persistence, we'd need a way to store mock tokens.
+    // For simplicity, let's assume no persistence for now, or a very basic one.
+    // If we want to simulate a logged-in state on refresh, we can set mock data.
+    const loadInitialState = async () => {
+      // In a real scenario, you'd check cookies or local storage for tokens.
+      // For this mock, we'll assume the user is not logged in initially unless we add persistence.
+      // If we want to simulate a logged-in user on refresh, we could do something like:
+      // const mockUser = { id: 'mock-user-id', email: 'test@example.com', name: 'Usuario Simulad', createdAt: new Date().toISOString() };
+      // const mockAccessToken = 'mock-access-token-mock-user-id-12345';
+      // setUser(mockUser);
+      // setAccessToken(mockAccessToken);
+      // console.log('Estado inicial simulado cargado.');
       setLoading(false);
     };
 
-    loadTokens();
-  }, []);
+    loadInitialState();
+  }, []); // Empty dependency array means this runs once on mount
 
   const isAuthenticated = !!accessToken;
 
