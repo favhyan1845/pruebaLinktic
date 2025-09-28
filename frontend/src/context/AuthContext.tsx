@@ -1,7 +1,8 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation'; // Keep useRouter for navigation
+import { useRouter } from 'next/navigation';
+import Cookies from 'js-cookie'; // Import Cookies
 
 interface User {
   id: string;
@@ -15,7 +16,6 @@ interface AuthContextType {
   accessToken: string | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
-  refreshAccessToken: () => Promise<string | null>;
   isAuthenticated: boolean;
   loading: boolean;
 }
@@ -25,13 +25,24 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
-  // refreshToken is no longer needed as we won't be refreshing tokens via API
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   // Simulate a successful login directly
   const login = useCallback(async (email: string, password: string) => {
+    console.log('Iniciando proceso de login con email:', email); // Debug log 1: Start of login process
+
+    // Basic validation: check if email and password are provided
+    if (!email || !password) {
+      console.error('Email and password are required for login.');
+      // In a real app, you might set an error state here.
+      // For this simulation, we just prevent the login process.
+      return;
+    }
+
     setLoading(true);
+    console.log('Estado de loading establecido a true.'); // Debug log 2: Loading state set to true
+
     try {
       // Simulate a successful login with mock data
       const mockUser = {
@@ -41,59 +52,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         createdAt: new Date().toISOString(),
       };
       const mockAccessToken = `mock-access-token-${mockUser.id}-${Date.now()}`;
+      console.log('Datos de usuario y token simulados creados:', { mockUser, mockAccessToken }); // Debug log 3: Mock data created
 
       setUser(mockUser);
       setAccessToken(mockAccessToken);
-      // No need to store in cookies or use refreshToken
+      console.log('Estado de usuario y accessToken actualizados.'); // Debug log 4: State updated
 
       console.log('Simulación de inicio de sesión exitosa.');
+      console.log('Redirigiendo a /dashboard...'); // Debug log 5: Redirecting
       router.push('/dashboard');
     } catch (error) {
       console.error('Error en la simulación de inicio de sesión:', error);
-    } finally {
-      setLoading(false);
+      setLoading(false); // Ensure loading is false if an error occurs during simulation
     }
   }, [router]);
 
   const logout = useCallback(() => {
+    console.log('Iniciando proceso de logout.'); // Debug log for logout
     setUser(null);
     setAccessToken(null);
-    // No need to clear cookies or tokens
+    Cookies.remove('accessToken'); // Remove cookies on logout
+    Cookies.remove('refreshToken');
     console.log('Simulación de cierre de sesión.');
     router.push('/login');
   }, [router]);
 
-  // Simulate token refresh, though not strictly necessary if login sets tokens directly
-  const refreshAccessToken = useCallback(async (): Promise<string | null> => {
-    // In a real app, this would fetch a new token. Here, we just simulate success.
-    // If accessToken is already set, we can assume it's valid for this mock.
-    if (accessToken) {
-      console.log('Simulación de refresco de token exitoso.');
-      // Optionally, generate a new mock token if needed for more complex scenarios
-      // const newMockAccessToken = `mock-access-token-${user?.id || 'mock-user-id'}-${Date.now()}`;
-      // setAccessToken(newMockAccessToken);
-      return accessToken;
-    }
-    logout(); // If no access token, simulate logout
-    return null;
-  }, [accessToken, logout]);
-
   useEffect(() => {
-    // On initial load, check if there's a mock accessToken (e.g., from a previous session if we were to implement persistence)
-    // For now, we'll just set a default state or check if user is already logged in.
-    // If we want to simulate persistence, we'd need a way to store mock tokens.
-    // For simplicity, let's assume no persistence for now, or a very basic one.
-    // If we want to simulate a logged-in state on refresh, we can set mock data.
     const loadInitialState = async () => {
-      // In a real scenario, you'd check cookies or local storage for tokens.
-      // For this mock, we'll assume the user is not logged in initially unless we add persistence.
-      // If we want to simulate a logged-in user on refresh, we could do something like:
-      // const mockUser = { id: 'mock-user-id', email: 'test@example.com', name: 'Usuario Simulad', createdAt: new Date().toISOString() };
-      // const mockAccessToken = 'mock-access-token-mock-user-id-12345';
-      // setUser(mockUser);
-      // setAccessToken(mockAccessToken);
-      // console.log('Estado inicial simulado cargado.');
+      const storedAccessToken = Cookies.get('accessToken');
+      const storedRefreshToken = Cookies.get('refreshToken');
+
+      if (storedAccessToken && storedRefreshToken) {
+        // In a real app, you'd validate the tokens with a backend call
+        // For this mock, we'll assume they are valid and set the user
+        setAccessToken(storedAccessToken);
+        // Simulate user data based on the token (e.g., decode JWT)
+        // For simplicity, we'll use a generic mock user
+        setUser({
+          id: 'mock-user-id',
+          email: 'test@example.com', // Assuming a default email for the mock user
+          name: 'Usuario Simulad',
+          createdAt: new Date().toISOString(),
+        });
+        console.log('Estado inicial cargado desde cookies, usuario autenticado.');
+      } else {
+        console.log('No se encontraron tokens en cookies, usuario no autenticado.');
+      }
       setLoading(false);
+      console.log('Estado inicial cargado, loading establecido a false.'); // Debug log for initial state load
     };
 
     loadInitialState();
@@ -102,7 +108,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isAuthenticated = !!accessToken;
 
   return (
-    <AuthContext.Provider value={{ user, accessToken, login, logout, refreshAccessToken, isAuthenticated, loading }}>
+    <AuthContext.Provider value={{ user, accessToken, login, logout, isAuthenticated, loading }}>
       {children}
     </AuthContext.Provider>
   );

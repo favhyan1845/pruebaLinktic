@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
 
 export default function LoginPage() {
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -27,13 +28,17 @@ export default function LoginPage() {
         },
         body: JSON.stringify({ email, password }),
       });
+      console.log('Login response status:', response.status);
+      console.log('Login response headers:', response.headers);
+      
+      const responseData = await response.json(); // Leer el cuerpo de la respuesta una sola vez como JSON
+      console.log('Login response body:', responseData);
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Login failed');
+        throw new Error(responseData.message || 'Login failed');
       }
 
-      const { accessToken, refreshToken } = await response.json();
+      const { accessToken, refreshToken } = responseData; // Usar los datos ya leídos
       Cookies.set('accessToken', accessToken);
       Cookies.set('refreshToken', refreshToken);
       router.push('/dashboard');
