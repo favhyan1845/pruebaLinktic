@@ -12,138 +12,85 @@ interface UserProfile {
 }
 
 export default function ProfilePage() {
-  const { accessToken, isAuthenticated, loading, logout, refreshAccessToken } = useAuth();
+  const { user, isAuthenticated, loading, logout } = useAuth(); // Removed accessToken, refreshAccessToken
   const router = useRouter();
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null); // Re-introduce userProfile state
   const [newName, setNewName] = useState('');
   const [editMode, setEditMode] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
+  console.log('ProfilePage: Component mounted'); // Debug log: Component mount
+
   useEffect(() => {
+    console.log('ProfilePage: useEffect for redirect - loading:', loading, 'isAuthenticated:', isAuthenticated); // Debug log: Redirect effect start
     if (!loading && !isAuthenticated) {
+      console.log('ProfilePage: Not authenticated, redirecting to /login');
       router.push('/login');
     }
   }, [isAuthenticated, loading, router]);
 
-  const fetchProfile = useCallback(async () => {
-    if (!accessToken) return;
-
-    try {
-      const response = await fetch('/users/me', {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-        },
-      });
-
-      if (response.status === 401) {
-        const newAccessToken = await refreshAccessToken();
-        if (newAccessToken) {
-          // Retry with new token
-          const retryResponse = await fetch('/users/me', {
-            headers: {
-              'Authorization': `Bearer ${newAccessToken}`,
-            },
-          });
-          if (retryResponse.ok) {
-            const data = await retryResponse.json();
-            setUserProfile(data);
-            setNewName(data.name);
-          } else {
-            logout();
-          }
-        } else {
-          logout();
-        }
-      } else if (response.ok) {
-        const data = await response.json();
-        setUserProfile(data);
-        setNewName(data.name);
-      } else {
-        logout();
-      }
-    } catch (err) {
-      console.error('Failed to fetch profile:', err);
-      logout();
-    }
-  }, [accessToken, refreshAccessToken, logout]);
-
+  // Initialize userProfile from useAuth().user and set newName
   useEffect(() => {
-    if (isAuthenticated && !userProfile) {
-      fetchProfile();
+    console.log('ProfilePage: useEffect for data initialization - isAuthenticated:', isAuthenticated, 'user:', user); // Debug log: Data initialization effect start
+    if (isAuthenticated && user) {
+      setUserProfile({
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        createdAt: user.createdAt,
+      });
+      setNewName(user.name); // Initialize newName with current user's name
+      console.log('ProfilePage: User profile initialized and newName set.'); // Debug log: Data initialized
+    } else if (!isAuthenticated && !loading) {
+      // If not authenticated and not loading, redirect to login
+      console.log('ProfilePage: Not authenticated and not loading, redirecting to /login');
+      router.push('/login');
     }
-  }, [isAuthenticated, userProfile, fetchProfile]);
+  }, [isAuthenticated, user, loading, router]);
 
-  const handleUpdateName = async (e: React.FormEvent) => {
+  const handleUpdateName = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('ProfilePage: handleUpdateName called'); // Debug log: handleUpdateName called
     setError('');
     setMessage('');
 
     if (!newName.trim()) {
       setError('Name cannot be empty.');
+      console.error('ProfilePage: Name cannot be empty.'); // Debug log: Validation error
       return;
     }
 
-    if (!accessToken) {
-      setError('Not authenticated.');
-      return;
-    }
-
-    try {
-      const response = await fetch('/users/me', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ name: newName }),
-      });
-
-      if (response.status === 401) {
-        const newAccessToken = await refreshAccessToken();
-        if (newAccessToken) {
-          // Retry with new token
-          const retryResponse = await fetch('/users/me', {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${newAccessToken}`,
-            },
-            body: JSON.stringify({ name: newName }),
-          });
-          if (retryResponse.ok) {
-            const updatedData = await retryResponse.json();
-            setUserProfile(updatedData);
-            setMessage('Profile updated successfully!');
-            setEditMode(false);
-          } else {
-            setError('Failed to update profile after token refresh.');
-          }
-        } else {
-          setError('Failed to refresh token and update profile.');
-        }
-      } else if (response.ok) {
-        const updatedData = await response.json();
-        setUserProfile(updatedData);
+    // Update the local userProfile state
+    setUserProfile((prevProfile) => {
+      console.log('ProfilePage: Updating userProfile state'); // Debug log: Updating state
+      if (prevProfile) {
+        const updatedProfile = { ...prevProfile, name: newName };
         setMessage('Profile updated successfully!');
         setEditMode(false);
-      } else {
-        const errorData = await response.json();
-        setError(errorData.message || 'Failed to update profile.');
+        console.log('ProfilePage: User profile updated, editMode set to false, message set.'); // Debug log: State updated successfully
+        return updatedProfile;
       }
-    } catch (err) {
-      console.error('Error updating profile:', err);
-      setError('An unexpected error occurred during update.');
-    }
-  };
+      console.log('ProfilePage: prevProfile is null, returning prevProfile.'); // Debug log: prevProfile is null
+      return prevProfile; // Should not happen if user is authenticated and userProfile is initialized
+    });
+  }, [newName, user]); // Added user to dependencies for resetting newName
 
-  if (loading || !isAuthenticated) {
+  // If user is null but authenticated (e.g., initial load before user data is ready), show loading
+  if (loading || (!user && isAuthenticated)) {
+    console.log('ProfilePage: Rendering loading state'); // Debug log: Rendering loading
     return <div className="min-h-screen flex items-center justify-center bg-gray-100">Loading...</div>;
   }
 
-  if (!userProfile) {
+  // If not authenticated, redirect handled by useEffect. If authenticated but no user data, show loading.
+  if (!user) {
+    console.log('ProfilePage: User is null, rendering loading profile...'); // Debug log: Rendering loading profile
+    // This case should ideally not be reached if isAuthenticated is true and loading is false
+    // but as a fallback, show loading or redirect.
     return <div className="min-h-screen flex items-center justify-center bg-gray-100">Loading profile...</div>;
   }
+
+  console.log('ProfilePage: Rendering profile details'); // Debug log: Rendering profile details
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4">
@@ -153,13 +100,13 @@ export default function ProfilePage() {
         {error && <p className="text-red-500 text-center mb-4">{error}</p>}
         <div className="mb-4">
           <p className="text-gray-700">
-            <span className="font-semibold">Name:</span> {userProfile.name}
+            <span className="font-semibold">Name:</span> {userProfile?.name} {/* Use userProfile.name */}
           </p>
           <p className="text-gray-700">
-            <span className="font-semibold">Email:</span> {userProfile.email}
+            <span className="font-semibold">Email:</span> {userProfile?.email} {/* Use userProfile.email */}
           </p>
           <p className="text-gray-700">
-            <span className="font-semibold">Member Since:</span> {new Date(userProfile.createdAt).toLocaleDateString()}
+            <span className="font-semibold">Member Since:</span> {userProfile?.createdAt ? new Date(userProfile.createdAt).toLocaleDateString() : ''} {/* Use userProfile.createdAt */}
           </p>
         </div>
 
@@ -174,7 +121,10 @@ export default function ProfilePage() {
                 id="newName"
                 className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                 value={newName}
-                onChange={(e) => setNewName(e.target.value)}
+                onChange={(e) => {
+                  console.log('ProfilePage: New name input changed to', e.target.value); // Debug log: Input change
+                  setNewName(e.target.value);
+                }}
                 required
               />
             </div>
@@ -182,8 +132,9 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={() => {
+                  console.log('ProfilePage: Cancel edit mode'); // Debug log: Cancel edit
                   setEditMode(false);
-                  setNewName(userProfile.name); // Reset name if cancelling
+                  setNewName(userProfile?.name || ''); // Reset name if cancelling, using userProfile.name
                   setError('');
                   setMessage('');
                 }}
@@ -202,7 +153,12 @@ export default function ProfilePage() {
         ) : (
           <div className="flex justify-end mt-4">
             <button
-              onClick={() => setEditMode(true)}
+              onClick={() => {
+                console.log('ProfilePage: Enter edit mode'); // Debug log: Enter edit mode
+                setEditMode(true);
+                // Ensure newName is initialized with the current user's name when entering edit mode
+                setNewName(userProfile?.name || ''); // Initialize with userProfile.name
+              }}
               className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
             >
               Edit Name

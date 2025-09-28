@@ -10,6 +10,9 @@ Este proyecto implementa un flujo de autenticación en Next.js 13+ (App Router) 
 - Envío de credenciales a `POST /users/login` (mockeado).
 - Manejo de expiración y refresco de tokens con `POST /users/refresh` (mockeado).
 
+Email: test@example.com
+Password: password123
+
 ### Páginas Protegidas (`/dashboard`, `/me`)
 - Acceso restringido a usuarios autenticados.
 

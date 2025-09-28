@@ -1,6 +1,5 @@
 import { http, HttpResponse } from 'msw';
-import { jwtDecode } from 'jwt-decode';
-
+console.log('Mock handlers loaded');
 interface LoginRequestBody {
   email: string;
   password: string;
@@ -35,17 +34,34 @@ const generateTokens = (user: any) => {
   return { accessToken: newAccessToken, refreshToken: newRefreshToken };
 };
 
+
 export const handlers = [
   http.post('/users/login', async ({ request }) => {
-    const { email, password } = (await request.json()) as LoginRequestBody;
+    console.log('Received login request');
+    console.log('Request headers:', Array.from(request.headers.entries()));
+    const requestBody = (await request.json()) as LoginRequestBody;
+    console.log('Request body:', requestBody);
+    const { email, password } = requestBody;
     const user = users.find(u => u.email === email && u.password === password);
-
+console.log('Login attempt:', email, password, 'User found:', user);
     if (!user) {
-      return new HttpResponse(null, { status: 401, statusText: 'Invalid credentials' });
+      return HttpResponse.json({ message: 'Invalid credentials' }, { status: 401 });
     }
 
     const tokens = generateTokens(user);
     return HttpResponse.json({ accessToken: tokens.accessToken, refreshToken: tokens.refreshToken });
+  }),
+
+  // Handler para la ruta GET /dashboard
+  http.get('/dashboard', () => {
+    console.log('Received GET /dashboard request');
+    return HttpResponse.json({ message: 'Dashboard mock data', user: { name: 'Test User' } }, { status: 200 });
+  }),
+
+  // Handler para la ruta GET /login
+  http.get('/login', () => {
+    console.log('Received GET /login request');
+    return HttpResponse.json({ message: 'Login page mock data' }, { status: 200 });
   }),
 
   http.post('/users/refresh', async ({ request }) => {

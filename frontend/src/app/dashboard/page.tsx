@@ -34,7 +34,12 @@ export default function DashboardPage() {
           Logout
         </button>
         <div className="mt-4">
-          <a href="/me" className="text-blue-500 hover:underline">Go to Profile</a>
+          <button
+            onClick={() => router.push('/me')}
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+          >
+            Ir a mi cuenta
+          </button>
         </div>
       </div>
     </div>
