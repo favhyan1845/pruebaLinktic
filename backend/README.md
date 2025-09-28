@@ -3,6 +3,7 @@
 Este es el repositorio del backend para la prueba técnica de Linktic.
 
 ## Descripción
+# archivo de coleccion postman \backend\postman_collection.json
 
 Este proyecto implementa la Parte 2 del backend de la prueba técnica de Linktic, utilizando Python Lambda, S3 y DynamoDB.
 
@@ -61,21 +62,15 @@ Para instalar las dependencias del proyecto, ejecuta:
 pip install -r requirements.txt
 ```
 
-## Uso
+## Pruebas Locales
 
-Para probar localmente con `pytest` y mocks (`moto`, `boto3`), ejecuta:
+Para probar localmente el backend, que incluye la simulación de S3 y DynamoDB utilizando `moto` y `boto3` mocks, ejecuta los tests con `pytest`:
 
 ```bash
 pytest tests/test_handler.py
 ```
 
-## Uso
-
-Para iniciar el servidor de desarrollo, ejecuta:
-
-```bash
-npm start
-```
+Este comando ejecutará las pruebas unitarias que validan la funcionalidad de la Lambda sin necesidad de desplegar en AWS.
 
 ## Tecnologías
 

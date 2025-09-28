@@ -3,6 +3,7 @@
 Este proyecto implementa un flujo de autenticación en Next.js 13+ (App Router) utilizando JWT (simulado) y consumiendo un API Gateway mockeado con MSW (Mock Service Worker).
 
 ## Requerimientos Funcionales Implementados
+# archivo de coleccion postman \frontend\postman_collection.json
 
 ### Login (`/login`)
 - Formulario con email y password.
